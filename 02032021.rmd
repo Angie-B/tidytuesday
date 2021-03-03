@@ -7,24 +7,63 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(cowplot)
+library(PaletteWoodsHole)
+library(RColorBrewer)
+library(tidytuesdayR)
+```
+The Data
+
+The data this week comes from FiveThirtyEight. They have a corresponding article on the topic. Note that the original source was superbowl-ads.com. You can watch all the ads via the FiveThirtyEight article above. 
+```{r echo=FALSE}
+tuesdata <- tidytuesdayR::tt_load('2021-03-02')
+youtube <- tuesdata$youtube
 ```
 
-## R Markdown
+Explore data
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r explore, echo=FALSE}
+unique(youtube$year)
+table(youtube$brand)
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+youtube %>%
+  mutate(fc_L_DL = like_count/dislike_count,
+         provoking = (like_count+dislike_count)/view_count) %>%
+  ggplot(.) +
+  geom_point(aes(x=provoking, y = fc_L_DL, color = brand,
+                 size = log10(view_count)),
+             alpha = 0.3) +
+  facet_wrap(~animals) +
+  theme_bw() +
+  scale_color_brewer(palette = 'Paired') +
+  xlab("Percent provoked") +
+  ylab("Fold Change (Likes/Dislikes)")
 
-```{r cars}
-summary(cars)
+youtube %>%
+  mutate(fc_L_DL = like_count/dislike_count,
+         provoking = (like_count+dislike_count)/view_count) %>%
+  dplyr::select(year, brand, funny, patriotic, 
+                celebrity, danger, animals,
+                use_sex, view_count, like_count, dislike_count,
+                fc_L_DL, provoking) %>%
+  gather(Category, Value, -view_count, -like_count,
+         - dislike_count, -fc_L_DL, -provoking) %>%
+  filter(Category != "year") %>%
+  ggplot(.) +
+  geom_density(aes(provoking, fill = Value),
+               alpha = 0.2) +
+  facet_wrap(~Category) +
+  theme_bw() +
+  xlab("Fraction of viewers provoked to like or dislike the ad") +
+  ylab("density")
+
+ggsave("02032021_superbowl_commercials.png")
 ```
 
-## Including Plots
+## final plot
+```{r echo=FALSE}
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
